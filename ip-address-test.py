@@ -35,8 +35,8 @@ def listarSubredes(ip_cidr: str, novo_prefixo: int):
 
     return list(network.subnets(new_prefix=novo_prefixo))
 
-ip_entrada = "192.168.1.10/24"
-cidr_entrada = 26
+ip_entrada = "10.0.0.0/8"
+cidr_entrada = 8
 subredes = listarSubredes(ip_entrada,cidr_entrada)
 
 # Criando o arquivo com a primeira página
@@ -69,7 +69,7 @@ for index, s in enumerate(subredes):
 |IP da Rede|{tabela['rede']}|
 |Hosts|{tabela['hosts_validos'][0]} até {tabela['hosts_validos'][1]}|
 |Broadcast|{tabela['broadcast']}|
-|Qtd IPs|{tabela['total_ips']}|
+|Qtd IPs|{tabela['total_ips']:,}|
 
     """
 
