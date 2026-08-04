@@ -2,7 +2,7 @@ import ipaddress
 import argparse # Biblioteca adicionada para gerenciar os argumentos via linha de comando
 import sys
 
-OUTPUT_FILE = 'ip-table.md'
+OUTPUT_FILE = '../../05-tabela-subrede.md'
 
 def tabelaDeRede(ip_cidr: str):
     network = ipaddress.ip_network(ip_cidr, strict=False)
@@ -76,6 +76,7 @@ if __name__ == "__main__":
 
     # Criando o arquivo com a primeira página
     markdown_text = f"""
+Gerado pelo `app/tabela-de-rede/ip-table-gen.py`.  
 # Tabela de Rede/Sub-rede
 > Importante!  
 > Não existe sub-rede ímpar, nem broadcast par.  
