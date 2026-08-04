@@ -35,8 +35,8 @@ def listarSubredes(ip_cidr: str, novo_prefixo: int):
 
     return list(network.subnets(new_prefix=novo_prefixo))
 
-ip_entrada = "10.0.0.0/8"
-cidr_entrada = 8
+ip_entrada = "172.16.0.1/12"
+cidr_entrada = 12
 subredes = listarSubredes(ip_entrada,cidr_entrada)
 
 # Criando o arquivo com a primeira página
