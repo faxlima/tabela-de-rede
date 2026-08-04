@@ -1,9 +1,11 @@
 import ipaddress
 import argparse # Biblioteca adicionada para gerenciar os argumentos via linha de comando
 import sys
+import itertools
+
 
 OUTPUT_FILE = '../../05-tabela-subrede.md'
-TRAVA_SEGURANCA = 25 # Quantidade máxima de tabelas que podem ser geradas
+TRAVA_SEGURANCA = 7 # Quantidade máxima de tabelas que podem ser geradas
 
 def tabelaDeRede(ip_cidr: str):
     network = ipaddress.ip_network(ip_cidr, strict=False)
@@ -38,7 +40,7 @@ def listarSubredes(ip_cidr: str, novo_prefixo: int):
     if novo_prefixo < network.prefixlen:
         raise ValueError("O novo prefixo deve ser maior que o prefixo original.")
 
-    return list(network.subnets(new_prefix=novo_prefixo))
+    return network.subnets(new_prefix=novo_prefixo)
 
 # Colocar a execução principal dentro do bloco __main__ é uma boa prática em Python
 if __name__ == "__main__":
@@ -62,28 +64,22 @@ if __name__ == "__main__":
 
     # 4. Processa os argumentos da linha de comando
     args = parser.parse_args()
-
     ip_entrada = args.ip_entrada
 
     try:
         rede_base = ipaddress.ip_network(ip_entrada, strict=False)
-        # Se o usuário informou --novo_cidr, usamos ele. Caso contrário, usamos o prefixo original
         cidr_entrada = args.novo_cidr if args.novo_cidr is not None else rede_base.prefixlen
 
-        # --- TRAVA DE SEGURANÇA ---
-        # Calcula a quantidade de sub-redes que serão geradas (2 elevado à diferença dos prefixos)
-        if cidr_entrada > rede_base.prefixlen:
-            qtd_esperada = 2 ** (cidr_entrada - rede_base.prefixlen)
+        # 1. Calcula a quantidade total de redes esperadas
+        qtd_esperada = 2 ** (cidr_entrada - rede_base.prefixlen) if cidr_entrada > rede_base.prefixlen else 1
+        houve_corte = qtd_esperada > TRAVA_SEGURANCA
 
-            if qtd_esperada > TRAVA_SEGURANCA:
-                print(f"🛑 TRAVA DE SEGURANÇA: A operação foi cancelada.")
-                print(f"Você solicitou uma quebra que geraria {qtd_esperada:,} tabelas de sub-redes.")
-                print(f"O limite máximo permitido no script é de {TRAVA_SEGURANCA} tabelas.")
-                sys.exit(1) # Encerra o programa com erro
+        # 2. Gera o iterador de sub-redes
+        iterador_subredes = listarSubredes(ip_entrada, cidr_entrada)
 
-        # Se passou pela trava, gera a lista
+        # 3. Puxa no máximo as primeiras X (TRAVA_SEGURANCA) redes usando o islice de forma segura
+        subredes = list(itertools.islice(iterador_subredes, TRAVA_SEGURANCA))
 
-        subredes = listarSubredes(ip_entrada, cidr_entrada)
     except ValueError as e:
         print(f"Erro ao processar o IP ou CIDR: {e}")
         sys.exit(1)
@@ -97,6 +93,9 @@ Gerado pelo `app/tabela-de-rede/ip-table-gen.py`.
 
 IP de Entrada: `{ip_entrada}`  
 Novo pré-fixo: `{cidr_entrada}`
+
+Total de tabelas de redes solicitadas: `{2 ** (cidr_entrada - rede_base.prefixlen)}`.
+Total de tabelas de redes geradas pela trava de segurança: `{TRAVA_SEGURANCA}`.
 
 """
     saveMarkdown(OUTPUT_FILE, markdown_text, "w")
