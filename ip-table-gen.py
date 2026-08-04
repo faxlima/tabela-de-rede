@@ -1,4 +1,8 @@
 import ipaddress
+import argparse # Biblioteca adicionada para gerenciar os argumentos via linha de comando
+import sys
+
+OUTPUT_FILE = 'ip-table.md'
 
 def tabelaDeRede(ip_cidr: str):
     network = ipaddress.ip_network(ip_cidr, strict=False)
@@ -35,12 +39,43 @@ def listarSubredes(ip_cidr: str, novo_prefixo: int):
 
     return list(network.subnets(new_prefix=novo_prefixo))
 
-ip_entrada = "172.16.0.1/12"
-cidr_entrada = 12
-subredes = listarSubredes(ip_entrada,cidr_entrada)
+# Colocar a execução principal dentro do bloco __main__ é uma boa prática em Python
+if __name__ == "__main__":
+    # 1. Inicializa o parser
+    parser = argparse.ArgumentParser(description="Gera tabelas em Markdown para Redes e Sub-redes IPv4.")
 
-# Criando o arquivo com a primeira página
-markdown_text = f"""
+    # 2. Define o argumento obrigatório (ip_entrada)
+    parser.add_argument(
+        "ip_entrada", 
+        type=str, 
+        help="Endereço IP com seu prefixo CIDR. Ex: 172.16.0.1/12"
+    )
+
+    # 3. Define um argumento opcional para o caso de querer calcular sub-redes menores
+    parser.add_argument(
+        "--novo_cidr", 
+        type=int, 
+        help="Opcional: Novo prefixo (maior que o original) para calcular sub-redes.",
+        default=None
+    )
+
+    # 4. Processa os argumentos da linha de comando
+    args = parser.parse_args()
+
+    ip_entrada = args.ip_entrada
+
+    try:
+        rede_base = ipaddress.ip_network(ip_entrada, strict=False)
+        # Se o usuário informou --novo_cidr, usamos ele. Caso contrário, usamos o prefixo original
+        cidr_entrada = args.novo_cidr if args.novo_cidr is not None else rede_base.prefixlen
+
+        subredes = listarSubredes(ip_entrada, cidr_entrada)
+    except ValueError as e:
+        print(f"Erro ao processar o IP ou CIDR: {e}")
+        sys.exit(1)
+
+    # Criando o arquivo com a primeira página
+    markdown_text = f"""
 # Tabela de Rede/Sub-rede
 > Importante!  
 > Não existe sub-rede ímpar, nem broadcast par.  
@@ -49,18 +84,18 @@ IP de Entrada: `{ip_entrada}`
 Novo pré-fixo: `{cidr_entrada}`
 
 """
-saveMarkdown("README.MD", markdown_text,"w")
+    saveMarkdown(OUTPUT_FILE, markdown_text, "w")
 
-for index, s in enumerate(subredes):
-    tabela = tabelaDeRede(s)
-    print(f"IP: {tabela['IP']}")
+    for index, s in enumerate(subredes):
+        tabela = tabelaDeRede(s)
+        print(f"IP: {tabela['IP']}")
 
-    if(len(subredes)==1):
-        tipo = "Rede"
-    else:
-        tipo = "Sub-rede"
+        if(len(subredes)==1):
+            tipo = "Rede"
+        else:
+            tipo = "Sub-rede"
 
-    markdown_text = f"""
+        markdown_text = f"""
 ## {tipo} {index}
 |Item      |Valor           |
 |----------|----------------|
@@ -71,6 +106,5 @@ for index, s in enumerate(subredes):
 |Broadcast|{tabela['broadcast']}|
 |Qtd IPs|{tabela['total_ips']:,}|
 
-    """
-
-    saveMarkdown("README.MD", markdown_text, 'a')
+"""
+        saveMarkdown(OUTPUT_FILE, markdown_text, 'a')
