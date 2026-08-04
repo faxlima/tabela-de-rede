@@ -3,6 +3,7 @@ import argparse # Biblioteca adicionada para gerenciar os argumentos via linha d
 import sys
 
 OUTPUT_FILE = '../../05-tabela-subrede.md'
+TRAVA_SEGURANCA = 25 # Quantidade máxima de tabelas que podem ser geradas
 
 def tabelaDeRede(ip_cidr: str):
     network = ipaddress.ip_network(ip_cidr, strict=False)
@@ -68,6 +69,19 @@ if __name__ == "__main__":
         rede_base = ipaddress.ip_network(ip_entrada, strict=False)
         # Se o usuário informou --novo_cidr, usamos ele. Caso contrário, usamos o prefixo original
         cidr_entrada = args.novo_cidr if args.novo_cidr is not None else rede_base.prefixlen
+
+        # --- TRAVA DE SEGURANÇA ---
+        # Calcula a quantidade de sub-redes que serão geradas (2 elevado à diferença dos prefixos)
+        if cidr_entrada > rede_base.prefixlen:
+            qtd_esperada = 2 ** (cidr_entrada - rede_base.prefixlen)
+
+            if qtd_esperada > TRAVA_SEGURANCA:
+                print(f"🛑 TRAVA DE SEGURANÇA: A operação foi cancelada.")
+                print(f"Você solicitou uma quebra que geraria {qtd_esperada:,} tabelas de sub-redes.")
+                print(f"O limite máximo permitido no script é de {TRAVA_SEGURANCA} tabelas.")
+                sys.exit(1) # Encerra o programa com erro
+
+        # Se passou pela trava, gera a lista
 
         subredes = listarSubredes(ip_entrada, cidr_entrada)
     except ValueError as e:
